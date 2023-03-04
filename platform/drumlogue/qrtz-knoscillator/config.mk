@@ -24,7 +24,9 @@ ASMXSRC =
 # Include Paths
 #
 
-UINCDIR  = 
+UINCDIR  = $(realpath $(PROJECT_ROOT)/../../ext/OwlProgram/Source/)
+UINCDIR += $(realpath $(PROJECT_ROOT)/../../ext/OwlProgram/LibSource/)
+UINCDIR += $(realpath $(PROJECT_ROOT)/../../ext/OwlPatches/OwlPatches/)
 
 ##############################################################################
 # Library Paths

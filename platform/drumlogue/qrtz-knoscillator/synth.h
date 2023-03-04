@@ -12,11 +12,25 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <math.h>
 
 #include <arm_neon.h>
 
+#include "KnotOscillator.h"
+#include "CartesianFloat.h"
+#include "CartesianTransform.h"
+
 class Synth {
+/*===========================================================================*/
+/* Private Member Variables. */
+/*===========================================================================*/
+
+  KnotOscillator knosc;
+  //Rotation3D rotator;
+  float rotateX;
+  float rotateY;
+  float rotateZ;
+  float vol;
+
  public:
   /*===========================================================================*/
   /* Public Data Structures/Types. */
@@ -26,8 +40,13 @@ class Synth {
   /* Lifecycle Methods. */
   /*===========================================================================*/
 
-  Synth(void) {}
-  ~Synth(void) {}
+  Synth(void) : knosc(48000), rotateX(0), rotateY(0), rotateZ(0), vol(0)
+  {
+  }
+
+  ~Synth(void) 
+  {
+  }
 
   inline int8_t Init(const unit_runtime_desc_t * desc) {
     // Check compatibility of samplerate with unit, for drumlogue should be 48000
@@ -39,9 +58,8 @@ class Synth {
       return k_unit_err_geometry;
 
     // Note: if need to allocate some memory can do it here and return k_unit_err_memory if getting allocation errors
-    vol = 0;
-    step = 220.0f * (1.0f / desc->samplerate);
-    phase = 0.0f;
+    knosc.setFrequency(220.f);
+    knosc.setPQ(2, 1);
 
     return k_unit_err_none;
   }
@@ -52,7 +70,9 @@ class Synth {
 
   inline void Reset() 
   {
-    phase = 0;
+    rotateX = 1;
+    rotateY = 1;
+    rotateZ = 0;
     vol = 0;
   }
 
@@ -70,21 +90,32 @@ class Synth {
   /* Other Public Methods. */
   /*===========================================================================*/
 
-  fast_inline void Render(float * out, size_t frames) {
+  fast_inline void Render(float * out, size_t frames) 
+  {
     float * __restrict out_p = out;
     const float * out_e = out_p + (frames << 1);  // assuming stereo output
-    const float TWO_PI = M_PI * 2;
 
-    for (; out_p != out_e; out_p += 2) {
-      // Note: should take advantage of NEON ArmV7 instructions
+    // #TODO: use zoom parameter?
+    const float zoom = 6.0f;
+    const float rotateBaseFreq = 1.0f / 16.0f;
+    const float TWO_PI = M_PI * 2;
+    const float rotateStep = rotateBaseFreq * TWO_PI / 48000;
+    for (; out_p != out_e; out_p += 2) 
+    {
+      // #TODO: should take advantage of NEON ArmV7 instructions?
       //vst1_f32(out_p, vdup_n_f32(0.f));
-      out_p[0] = sinf(phase*TWO_PI)*vol;
-      out_p[1] = cosf(phase*TWO_PI)*vol;
-      phase += step;
-      if (phase >= 1)
-      {
-        phase -= 1;
-      }
+      CartesianFloat coord = knosc.generate<false>(0, 0, 0);
+
+      //rotator.setEuler(rotateX, rotateY, rotateZ);
+      //coord = rotator.process(coord);
+      
+      float projection = (1.0f / (coord.z + zoom)) * vol;
+      out_p[0] = coord.x * projection;
+      out_p[1] = coord.y * projection;
+
+      rotateX = rotateX > TWO_PI ? (rotateX - TWO_PI) + rotateStep : rotateX + rotateStep;
+      rotateY = rotateY > TWO_PI ? (rotateY - TWO_PI) + rotateStep : rotateY + rotateStep;
+      rotateZ = rotateZ > TWO_PI ? (rotateZ - TWO_PI) + rotateStep : rotateZ + rotateStep;
     }
   }
 
@@ -175,13 +206,6 @@ class Synth {
   }
 
  private:
-  /*===========================================================================*/
-  /* Private Member Variables. */
-  /*===========================================================================*/
-
-   float vol;
-   float phase;
-   float step;
 
   /*===========================================================================*/
   /* Private Methods. */
