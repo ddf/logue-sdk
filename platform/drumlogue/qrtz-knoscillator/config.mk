@@ -13,7 +13,7 @@ PROJECT_TYPE := synth
 CSRC = header.c
 
 # C++ sources
-CXXSRC = unit.cc
+CXXSRC = unit.cc matrix.cc
 
 # List ASM source files here
 ASMSRC = 
@@ -45,5 +45,7 @@ ULIBS += -lc
 # Macros
 #
 
-UDEFS = 
+# Need this to disable the ASSERT macro in OwlProgram/LibSource/message.h
+# because when it is active the unit fails to load on the device.
+UDEFS = -DNDEBUG
 

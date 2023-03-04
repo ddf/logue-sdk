@@ -25,7 +25,7 @@ class Synth {
 /*===========================================================================*/
 
   KnotOscillator knosc;
-  //Rotation3D rotator;
+  Rotation3D rotator;
   float rotateX;
   float rotateY;
   float rotateZ;
@@ -106,8 +106,8 @@ class Synth {
       //vst1_f32(out_p, vdup_n_f32(0.f));
       CartesianFloat coord = knosc.generate<false>(0, 0, 0);
 
-      //rotator.setEuler(rotateX, rotateY, rotateZ);
-      //coord = rotator.process(coord);
+      rotator.setEuler(rotateX, rotateY, rotateZ);
+      coord = rotator.process(coord);
       
       float projection = (1.0f / (coord.z + zoom)) * vol;
       out_p[0] = coord.x * projection;
