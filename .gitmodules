@@ -1,3 +1,9 @@
 [submodule "platform/ext/CMSIS"]
 	path = platform/ext/CMSIS
 	url = https://github.com/ARM-software/CMSIS.git
+[submodule "platform/ext/OwlProgram"]
+	path = platform/ext/OwlProgram
+	url = https://github.com/ddf/OwlProgram.git
+[submodule "platform/ext/OwlPatches"]
+	path = platform/ext/OwlPatches
+	url = https://github.com/ddf/OwlPatches.git
