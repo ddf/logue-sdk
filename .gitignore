@@ -59,3 +59,5 @@ platform/.bash_history
 platform/.profile
 platform/.sudo_as_admin_successful
 *.drmlgunit
+.vs/
+*.user
