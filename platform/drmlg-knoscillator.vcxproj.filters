@@ -16,13 +16,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\platform\drumlogue\qrtz-knoscillator\config.mk" />
-    <None Include="..\platform\drumlogue\qrtz-knoscillator\Makefile" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\platform\drumlogue\qrtz-knoscillator\header.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\platform\drumlogue\qrtz-knoscillator\unit.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="drumlogue\qrtz-knoscillator\matrix.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

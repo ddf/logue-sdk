@@ -20,11 +20,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\platform\drumlogue\qrtz-knoscillator\config.mk" />
-    <None Include="..\platform\drumlogue\qrtz-knoscillator\Makefile" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\platform\drumlogue\qrtz-knoscillator\header.c" />
     <ClCompile Include="..\platform\drumlogue\qrtz-knoscillator\unit.cc" />
+    <ClCompile Include="drumlogue\qrtz-knoscillator\matrix.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\platform\drumlogue\qrtz-knoscillator\synth.h" />
@@ -100,7 +100,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>platform\drumlogue\common;platform\ext\OwlPatches\OwlPatches;platform\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\drumlogue\common;$(SolutionDir)\ext\OwlPatches\OwlPatches;$(SolutionDir)\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,7 +116,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>platform\drumlogue\common;platform\ext\OwlPatches\OwlPatches;platform\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\drumlogue\common;$(SolutionDir)\ext\OwlPatches\OwlPatches;$(SolutionDir)\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +132,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>platform\drumlogue\common;platform\ext\OwlPatches\OwlPatches;platform\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\drumlogue\common;$(SolutionDir)\ext\OwlPatches\OwlPatches;$(SolutionDir)\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,7 +148,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>platform\drumlogue\common;platform\ext\OwlPatches\OwlPatches;platform\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\drumlogue\common;$(SolutionDir)\ext\OwlPatches\OwlPatches;$(SolutionDir)\ext\OwlProgram\LibSource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
