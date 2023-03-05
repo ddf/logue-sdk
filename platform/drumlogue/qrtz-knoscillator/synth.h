@@ -65,14 +65,7 @@ class Synth {
   KnotOscillator knosc;
   SineOscillator kpm;
   Rotation3D rotator;
-  int   noteParam; // parameter
-  int   knotP;
-  int   knotQ;
-  int   knotS;
-  int   morphParam;
-  int   fmIndexParam;
-  int   fmRatioParam;
-  int   noiseParam;
+  int32_t params[static_cast<uint8_t>(Param::Count)];
   float rotateX;
   float rotateY;
   float rotateZ;
@@ -93,11 +86,10 @@ class Synth {
   /*===========================================================================*/
 
   Synth(void) : knosc(48000), kpm(48000)
-    , noteParam(0), knotP(0), knotQ(0), knotS(0), morphParam(0)
-    , fmIndexParam(0), fmRatioParam(0), noiseParam(0)
     , rotateX(0), rotateY(0), rotateZ(0)
     , morph(), fmIndex(), freq(0), vol(0)
   {
+    memset(params, 0, sizeof(params));
   }
 
   ~Synth(void) 
@@ -147,10 +139,13 @@ class Synth {
     float * __restrict out_p = out;
     const float * out_e = out_p + (frames << 1);  // assuming stereo output
 
-    morph = (float)morphParam / 100.0f;
-    fmIndex = TWO_PI * ((float)fmIndexParam / 100.0f);
+    int knotP = getParameterValue(Param::KnotP);
+    int knotQ = getParameterValue(Param::KnotQ);
 
-    kpm.setFrequency(freq * FM_RATIO_VAL[fmRatioParam]);
+    morph = (float)getParameterValue(Param::Morph) / 100.0f;
+    fmIndex = TWO_PI * ((float)getParameterValue(Param::FmIndex) / 100.0f);
+
+    kpm.setFrequency(freq * FM_RATIO_VAL[getParameterValue(Param::FmRatio)]);
 
     knosc.setFrequency(freq);
     knosc.setPQ(knotP, knotQ);
@@ -160,9 +155,9 @@ class Synth {
     const float zoom = 6.0f;
     const float rotateBaseFreq = 1.0f / 16.0f;
     const float rotateStep = rotateBaseFreq * STEP_RATE;
-    const float squigVol = (float)knotS * 0.25f / 100.0f;
+    const float squigVol = (float)getParameterValue(Param::KnotS) * 0.25f / 100.0f;
     const float squigStep = freq * STEP_RATE * 4 * (knotP + knotQ);
-    const float noiseVol = (float)noiseParam * 0.5f / 100.0f;
+    const float noiseVol = (float)getParameterValue(Param::Noise) * 0.5f / 100.0f;
     for (; out_p != out_e; out_p += 2) 
     {
       const float fm = kpm.generate() * fmIndex;
@@ -195,35 +190,24 @@ class Synth {
   {
     switch (Param(index)) 
     {
-      case Param::Note: noteParam = value; freq = Frequency::ofMidiNote(noteParam).asHz(); break;
-      case Param::KnotP: knotP = value; break;
-      case Param::KnotQ: knotQ = value; break;
-      case Param::KnotS: knotS = value; break;
-      case Param::Morph: morphParam = value; break;
-      case Param::FmIndex: fmIndexParam = value; break;
-      case Param::FmRatio: fmRatioParam = value; break;
-      case Param::Noise: noiseParam = value; break;
+      case Param::Note: freq = Frequency::ofMidiNote(value).asHz();
       default:
+        if (index < static_cast<uint8_t>(Param::Count))
+        {
+          params[index] = value;
+        }
         break;
     }
   }
 
-  inline int32_t getParameterValue(uint8_t index) const {
-    switch (Param(index))
-    {
-      case Param::Note: return noteParam;
-      case Param::KnotP: return knotP;
-      case Param::KnotQ: return knotQ;
-      case Param::KnotS: return knotS;
-      case Param::Morph: return morphParam;
-      case Param::FmIndex: return fmIndexParam;
-      case Param::FmRatio: return fmRatioParam;
-      case Param::Noise: return noiseParam;
+  inline int32_t getParameterValue(uint8_t index) const
+  {
+    return index < static_cast<uint8_t>(Param::Count) ? params[index] : 0;
+  }
 
-      default:
-        break;
-    }
-    return 0;
+  inline int32_t getParameterValue(Param index) const
+  {
+    return getParameterValue(static_cast<uint8_t>(index));
   }
 
   inline const char * getParameterStrValue(uint8_t index, int32_t value) const {
@@ -264,7 +248,7 @@ class Synth {
 
   inline void GateOn(uint8_t velocity) 
   {
-    freq = Frequency::ofMidiNote(noteParam).asHz();
+    freq = Frequency::ofMidiNote(getParameterValue(Param::Note)).asHz();
     vol = (float)velocity / 127.0f;
   }
 
