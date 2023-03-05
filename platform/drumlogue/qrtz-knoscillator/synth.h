@@ -37,6 +37,9 @@ enum class Param : uint8_t
   FmIndex,
   FmRatio,
   Noise,
+  RotateX,
+  RotateY,
+  RotateZ,
 
   Count
 };
@@ -155,6 +158,9 @@ class Synth {
     const float zoom = 6.0f;
     const float rotateBaseFreq = 1.0f / 16.0f;
     const float rotateStep = rotateBaseFreq * STEP_RATE;
+    const float rfx = rotateStep * ((float)getParameterValue(Param::RotateX) / 100.0f) * 16;
+    const float rfy = rotateStep * ((float)getParameterValue(Param::RotateY) / 100.0f) * 16;
+    const float rfz = rotateStep * ((float)getParameterValue(Param::RotateZ) / 100.0f) * 16;
     const float squigVol = (float)getParameterValue(Param::KnotS) * 0.25f / 100.0f;
     const float squigStep = freq * STEP_RATE * 4 * (knotP + knotQ);
     const float noiseVol = (float)getParameterValue(Param::Noise) * 0.5f / 100.0f;
@@ -180,9 +186,9 @@ class Synth {
       out_p[1] = coord.y * projection;
 
       phaseS = stepPhase(phaseS, squigStep);
-      rotateX = stepPhase(rotateX, rotateStep);
-      rotateY = stepPhase(rotateY, rotateStep);
-      rotateZ = stepPhase(rotateZ, rotateStep);
+      rotateX = stepPhase(rotateX, rfx);
+      rotateY = stepPhase(rotateY, rfy);
+      rotateZ = stepPhase(rotateZ, rfz);
     }
   }
 
