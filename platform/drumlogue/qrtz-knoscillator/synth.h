@@ -17,6 +17,7 @@
 
 #include "runtime.h"
 #include "attributes.h"
+#include "noise.h"
 
 #include "KnotOscillator.h"
 #include "CartesianFloat.h"
@@ -52,6 +53,8 @@ static const float FM_RATIO_VAL[] = {
   12.f, 13.f, 14.f, 15.f, 16.f
 };
 
+static const Noise2D<128> noise;
+
 class Synth {
 /*===========================================================================*/
 /* Private Member Variables. */
@@ -69,6 +72,7 @@ class Synth {
   int   morphParam;
   int   fmIndexParam;
   int   fmRatioParam;
+  int   noiseParam;
   float rotateX;
   float rotateY;
   float rotateZ;
@@ -90,7 +94,7 @@ class Synth {
 
   Synth(void) : knosc(48000), kpm(48000)
     , noteParam(0), knotP(0), knotQ(0), knotS(0), morphParam(0)
-    , fmIndexParam(0), fmRatioParam(0)
+    , fmIndexParam(0), fmRatioParam(0), noiseParam(0)
     , rotateX(0), rotateY(0), rotateZ(0)
     , morph(), fmIndex(), freq(0), vol(0)
   {
@@ -158,6 +162,7 @@ class Synth {
     const float rotateStep = rotateBaseFreq * STEP_RATE;
     const float squigVol = (float)knotS * 0.25f / 100.0f;
     const float squigStep = freq * STEP_RATE * 4 * (knotP + knotQ);
+    const float noiseVol = (float)noiseParam * 0.5f / 100.0f;
     for (; out_p != out_e; out_p += 2) 
     {
       const float fm = kpm.generate() * fmIndex;
@@ -170,8 +175,10 @@ class Synth {
       coord = rotator.process(coord);
 
       const float st = phaseS + fm;
-      coord.x += cosf(st) * squigVol;
-      coord.y += cosf(st) * squigVol;
+      const float nz = noiseVol * noise.sample(coord.x, coord.y);
+      coord.x += cosf(st) * squigVol + coord.x * nz;
+      coord.y += sinf(st) * squigVol + coord.y * nz;
+      coord.z += coord.z * nz;
       
       float projection = (1.0f / (coord.z + zoom)) * vol;
       out_p[0] = coord.x * projection;
@@ -195,6 +202,7 @@ class Synth {
       case Param::Morph: morphParam = value; break;
       case Param::FmIndex: fmIndexParam = value; break;
       case Param::FmRatio: fmRatioParam = value; break;
+      case Param::Noise: noiseParam = value; break;
       default:
         break;
     }
@@ -210,6 +218,7 @@ class Synth {
       case Param::Morph: return morphParam;
       case Param::FmIndex: return fmIndexParam;
       case Param::FmRatio: return fmRatioParam;
+      case Param::Noise: return noiseParam;
 
       default:
         break;
