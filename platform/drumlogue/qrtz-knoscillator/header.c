@@ -29,12 +29,12 @@ const __unit_header unit_header_t unit_header = {
         {0, 127, 0, 60, k_unit_param_type_midi_note, 0, 0, 0, {"NOTE"}},
         {1, 16, 0, 2, k_unit_param_type_none, 0, 0, 0, {"KNOT P"}},
         {1, 16, 0, 1, k_unit_param_type_none, 0, 0, 0, {"KNOT Q"}},
-        {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"MORPH"}},
+        {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"KNOT S"}},
 
         // Page 2
         // string enum parameter, unit_get_param_str_value will be called with
         // numerical value to obtain string to display
-        {0, 9, 0, 0, k_unit_param_type_strings, 0, 0, 0, {"PARAM4"}},
+        {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"MORPH"}},
         // bitmap enum parameter, unit_get_param_bmp_value will be called with
         // numerical value to obtain the bitmap to display
         // Note: bitmap specifications not final yet, and not implemented yet in

@@ -30,6 +30,7 @@ enum class Param : uint8_t
   Note,
   KnotP,
   KnotQ,
+  KnotS,
   Morph
 };
 
@@ -37,18 +38,22 @@ class Synth {
 /*===========================================================================*/
 /* Private Member Variables. */
 /*===========================================================================*/
+  static constexpr float TWO_PI = M_PI * 2;
+  static constexpr float STEP_RATE = TWO_PI / 48000;
 
   KnotOscillator knosc;
   Rotation3D rotator;
   int   noteParam; // parameter
   int   knotP;
   int   knotQ;
+  int   knotS;
   int   morphParam;
   float rotateX;
   float rotateY;
   float rotateZ;
 
   SmoothFloat morph;
+  float phaseS;
   float freq;
   float vol;
 
@@ -62,7 +67,7 @@ class Synth {
   /*===========================================================================*/
 
   Synth(void) : knosc(48000)
-    , noteParam(0), knotP(0), knotQ(0), morphParam(0)
+    , noteParam(0), knotP(0), knotQ(0), knotS(0), morphParam(0)
     , rotateX(0), rotateY(0), rotateZ(0)
     , morph(), freq(0), vol(0)
   {
@@ -90,8 +95,8 @@ class Synth {
 
   inline void Reset() 
   {
-    rotateX = 1;
-    rotateY = 1;
+    rotateX = 0;
+    rotateY = 0;
     rotateZ = 0;
     vol = 0;
   }
@@ -123,8 +128,9 @@ class Synth {
     // #TODO: use zoom parameter?
     const float zoom = 6.0f;
     const float rotateBaseFreq = 1.0f / 16.0f;
-    const float TWO_PI = M_PI * 2;
-    const float rotateStep = rotateBaseFreq * TWO_PI / 48000;
+    const float rotateStep = rotateBaseFreq * STEP_RATE;
+    const float squigVol = (float)knotS * 0.25f / 100.0f;
+    const float squigStep = freq * STEP_RATE * 4 * (knotP + knotQ);
     for (; out_p != out_e; out_p += 2) 
     {
       // #TODO: should take advantage of NEON ArmV7 instructions?
@@ -133,14 +139,19 @@ class Synth {
 
       rotator.setEuler(rotateX, rotateY, rotateZ);
       coord = rotator.process(coord);
+
+      const float st = phaseS;
+      coord.x += cosf(st) * squigVol;
+      coord.y += cosf(st) * squigVol;
       
       float projection = (1.0f / (coord.z + zoom)) * vol;
       out_p[0] = coord.x * projection;
       out_p[1] = coord.y * projection;
 
-      rotateX = rotateX > TWO_PI ? (rotateX - TWO_PI) + rotateStep : rotateX + rotateStep;
-      rotateY = rotateY > TWO_PI ? (rotateY - TWO_PI) + rotateStep : rotateY + rotateStep;
-      rotateZ = rotateZ > TWO_PI ? (rotateZ - TWO_PI) + rotateStep : rotateZ + rotateStep;
+      phaseS = stepPhase(phaseS, squigStep);
+      rotateX = stepPhase(rotateX, rotateStep);
+      rotateY = stepPhase(rotateY, rotateStep);
+      rotateZ = stepPhase(rotateZ, rotateStep);
     }
   }
 
@@ -151,6 +162,7 @@ class Synth {
       case Param::Note: noteParam = value; freq = Frequency::ofMidiNote(noteParam).asHz(); break;
       case Param::KnotP: knotP = value; break;
       case Param::KnotQ: knotQ = value; break;
+      case Param::KnotS: knotS = value; break;
       case Param::Morph: morphParam = value; break;
 
       default:
@@ -164,6 +176,7 @@ class Synth {
       case Param::Note: return noteParam;
       case Param::KnotP: return knotP;
       case Param::KnotQ: return knotQ;
+      case Param::KnotS: return knotS;
       case Param::Morph: return morphParam;
 
       default:
@@ -251,13 +264,9 @@ class Synth {
     return nullptr;
   }
 
- private:
-
-  /*===========================================================================*/
-  /* Private Methods. */
-  /*===========================================================================*/
-
-  /*===========================================================================*/
-  /* Constants. */
-  /*===========================================================================*/
+private:
+  static inline float stepPhase(const float phase, const float step)
+  {
+    return phase > TWO_PI ? phase - TWO_PI + step : phase + step;
+  }
 };
