@@ -15,9 +15,23 @@
 
 #include <arm_neon.h>
 
+#include "runtime.h"
+#include "attributes.h"
+
 #include "KnotOscillator.h"
 #include "CartesianFloat.h"
 #include "CartesianTransform.h"
+#include "Frequency.h"
+#include "SmoothValue.h"
+#include "SmoothValue.cpp"
+
+enum class Param : uint8_t
+{
+  Note,
+  KnotP,
+  KnotQ,
+  Morph
+};
 
 class Synth {
 /*===========================================================================*/
@@ -26,9 +40,16 @@ class Synth {
 
   KnotOscillator knosc;
   Rotation3D rotator;
+  int   noteParam; // parameter
+  int   knotP;
+  int   knotQ;
+  int   morphParam;
   float rotateX;
   float rotateY;
   float rotateZ;
+
+  SmoothFloat morph;
+  float freq;
   float vol;
 
  public:
@@ -40,7 +61,10 @@ class Synth {
   /* Lifecycle Methods. */
   /*===========================================================================*/
 
-  Synth(void) : knosc(48000), rotateX(0), rotateY(0), rotateZ(0), vol(0)
+  Synth(void) : knosc(48000)
+    , noteParam(0), knotP(0), knotQ(0), morphParam(0)
+    , rotateX(0), rotateY(0), rotateZ(0)
+    , morph(), freq(0), vol(0)
   {
   }
 
@@ -56,10 +80,6 @@ class Synth {
     // Check compatibility of frame geometry
     if (desc->output_channels != 2)  // should be stereo output
       return k_unit_err_geometry;
-
-    // Note: if need to allocate some memory can do it here and return k_unit_err_memory if getting allocation errors
-    knosc.setFrequency(220.f);
-    knosc.setPQ(2, 1);
 
     return k_unit_err_none;
   }
@@ -95,6 +115,11 @@ class Synth {
     float * __restrict out_p = out;
     const float * out_e = out_p + (frames << 1);  // assuming stereo output
 
+    morph = (float)morphParam / 100.0f;
+    knosc.setFrequency(freq);
+    knosc.setPQ(knotP, knotQ);
+    knosc.setMorph(morph);
+
     // #TODO: use zoom parameter?
     const float zoom = 6.0f;
     const float rotateBaseFreq = 1.0f / 16.0f;
@@ -119,16 +144,28 @@ class Synth {
     }
   }
 
-  inline void setParameter(uint8_t index, int32_t value) {
-    (void)value;
-    switch (index) {
+  inline void setParameter(uint8_t index, int32_t value) 
+  {
+    switch (Param(index)) 
+    {
+      case Param::Note: noteParam = value; freq = Frequency::ofMidiNote(noteParam).asHz(); break;
+      case Param::KnotP: knotP = value; break;
+      case Param::KnotQ: knotQ = value; break;
+      case Param::Morph: morphParam = value; break;
+
       default:
         break;
     }
   }
 
   inline int32_t getParameterValue(uint8_t index) const {
-    switch (index) {
+    switch (Param(index))
+    {
+      case Param::Note: return noteParam;
+      case Param::KnotP: return knotP;
+      case Param::KnotQ: return knotQ;
+      case Param::Morph: return morphParam;
+
       default:
         break;
     }
@@ -161,15 +198,21 @@ class Synth {
     return nullptr;
   }
 
-  inline void NoteOn(uint8_t note, uint8_t velocity) {
-    (void)note;
-    (void)velocity;
+  inline void NoteOn(uint8_t note, uint8_t velocity) 
+  {
+    freq = Frequency::ofMidiNote(note).asHz();
+    vol = (float)velocity / 127.0f;
   }
 
-  inline void NoteOff(uint8_t note) { (void)note; }
+  inline void NoteOff(uint8_t note) 
+  { 
+    (void)note;
+    vol = 0;
+  }
 
   inline void GateOn(uint8_t velocity) 
   {
+    freq = Frequency::ofMidiNote(noteParam).asHz();
     vol = (float)velocity / 127.0f;
   }
 
@@ -178,7 +221,10 @@ class Synth {
     vol = 0;
   }
 
-  inline void AllNoteOff() {}
+  inline void AllNoteOff() 
+  {
+    vol = 0;
+  }
 
   inline void PitchBend(uint16_t bend) { (void)bend; }
 

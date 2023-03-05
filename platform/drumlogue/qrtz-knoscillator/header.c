@@ -17,7 +17,7 @@ const __unit_header unit_header_t unit_header = {
     .dev_id = 0x0U,                                        // developer identifier
     .unit_id = 0x0U,                                       // Id for this unit, should be unique within the scope of a given dev_id
     .version = 0x00010000U,                                // This unit's version: major.minor.patch (major<<16 minor<<8 patch).
-    .name = "knoscillator",                                       // Name for this unit, will be displayed on device
+    .name = "Knoscillator",                                       // Name for this unit, will be displayed on device
     .num_presets = 0,                                      // Number of internal presets this unit has
     .num_params = 6,                                       // Number of parameters for this unit, max 24
     .params = {
@@ -26,15 +26,10 @@ const __unit_header unit_header_t unit_header = {
         // See common/runtime.h for type enum and unit_param_t structure
 
         // Page 1
-        // percent param with .5 precision e.g.: "25.0%", "50.5%"
-        {0, (100 << 1), 0, (25 << 1), k_unit_param_type_percent, 1, 0, 0, {"PARAM1"}},
-        // untyped bipolar parameter centered at 0 e.g.: "-5", "0", "2"
-        {-5, 5, 0, 0, k_unit_param_type_none, 0, 0, 0, {"PARAM2"}},
-        // pan parameter e.g.: "L50", "C", "R100"
-        {-100, 100, 0, 0, k_unit_param_type_pan, 0, 0, 0, {"PARAM3"}},
-        // blank parameter, leaves that parameter slot blank in UI. Use when
-        // want to align some params to next page
-        {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}},
+        {0, 127, 0, 60, k_unit_param_type_midi_note, 0, 0, 0, {"NOTE"}},
+        {1, 16, 0, 2, k_unit_param_type_none, 0, 0, 0, {"KNOT P"}},
+        {1, 16, 0, 1, k_unit_param_type_none, 0, 0, 0, {"KNOT Q"}},
+        {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"MORPH"}},
 
         // Page 2
         // string enum parameter, unit_get_param_str_value will be called with
