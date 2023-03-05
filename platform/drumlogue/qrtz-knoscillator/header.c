@@ -32,16 +32,10 @@ const __unit_header unit_header_t unit_header = {
         {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"KNOT S"}},
 
         // Page 2
-        // string enum parameter, unit_get_param_str_value will be called with
-        // numerical value to obtain string to display
         {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"MORPH"}},
-        // bitmap enum parameter, unit_get_param_bmp_value will be called with
-        // numerical value to obtain the bitmap to display
-        // Note: bitmap specifications not final yet, and not implemented yet in
-        // UI
-        {0, 9, 0, 0, k_unit_param_type_bitmaps, 0, 0, 0, {"PARAM5"}},
-        {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}},
-        {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}},
+        {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"FM INDEX"}},
+        {0, 18, 0, 4, k_unit_param_type_strings, 0, 0, 0, {"FM RATIO"}},
+        {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"NOISE"}},
 
         // Page 3
         {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}},

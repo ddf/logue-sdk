@@ -24,6 +24,7 @@
 #include "Frequency.h"
 #include "SmoothValue.h"
 #include "SmoothValue.cpp"
+#include "SineOscillator.h"
 
 enum class Param : uint8_t
 {
@@ -31,7 +32,24 @@ enum class Param : uint8_t
   KnotP,
   KnotQ,
   KnotS,
-  Morph
+  Morph,
+  FmIndex,
+  FmRatio,
+  Noise,
+
+  Count
+};
+
+static const char* FM_RATIO_STR[] = {
+  "1/4", "1/2", "3/4", "1x", "2x", "3x", "4x",
+  "5x", "6x", "7x", "8x", "9x", "10x", "11x",
+  "12x", "13x", "14x", "15x", "16x"
+};
+
+static const float FM_RATIO_VAL[] = {
+  0.25f, 0.5f, 0.75f, 1.0f, 2.0f, 3.0f, 4.0f, 
+  5.0f, 6.0f, 7.0f, 9.0f, 10.f, 11.f, 
+  12.f, 13.f, 14.f, 15.f, 16.f
 };
 
 class Synth {
@@ -42,17 +60,21 @@ class Synth {
   static constexpr float STEP_RATE = TWO_PI / 48000;
 
   KnotOscillator knosc;
+  SineOscillator kpm;
   Rotation3D rotator;
   int   noteParam; // parameter
   int   knotP;
   int   knotQ;
   int   knotS;
   int   morphParam;
+  int   fmIndexParam;
+  int   fmRatioParam;
   float rotateX;
   float rotateY;
   float rotateZ;
 
   SmoothFloat morph;
+  SmoothFloat fmIndex;
   float phaseS;
   float freq;
   float vol;
@@ -66,10 +88,11 @@ class Synth {
   /* Lifecycle Methods. */
   /*===========================================================================*/
 
-  Synth(void) : knosc(48000)
+  Synth(void) : knosc(48000), kpm(48000)
     , noteParam(0), knotP(0), knotQ(0), knotS(0), morphParam(0)
+    , fmIndexParam(0), fmRatioParam(0)
     , rotateX(0), rotateY(0), rotateZ(0)
-    , morph(), freq(0), vol(0)
+    , morph(), fmIndex(), freq(0), vol(0)
   {
   }
 
@@ -121,6 +144,10 @@ class Synth {
     const float * out_e = out_p + (frames << 1);  // assuming stereo output
 
     morph = (float)morphParam / 100.0f;
+    fmIndex = TWO_PI * ((float)fmIndexParam / 100.0f);
+
+    kpm.setFrequency(freq * FM_RATIO_VAL[fmRatioParam]);
+
     knosc.setFrequency(freq);
     knosc.setPQ(knotP, knotQ);
     knosc.setMorph(morph);
@@ -133,14 +160,16 @@ class Synth {
     const float squigStep = freq * STEP_RATE * 4 * (knotP + knotQ);
     for (; out_p != out_e; out_p += 2) 
     {
+      const float fm = kpm.generate() * fmIndex;
+
       // #TODO: should take advantage of NEON ArmV7 instructions?
       //vst1_f32(out_p, vdup_n_f32(0.f));
-      CartesianFloat coord = knosc.generate<false>(0, 0, 0);
+      CartesianFloat coord = knosc.generate<false>(fm, 0, 0);
 
       rotator.setEuler(rotateX, rotateY, rotateZ);
       coord = rotator.process(coord);
 
-      const float st = phaseS;
+      const float st = phaseS + fm;
       coord.x += cosf(st) * squigVol;
       coord.y += cosf(st) * squigVol;
       
@@ -164,7 +193,8 @@ class Synth {
       case Param::KnotQ: knotQ = value; break;
       case Param::KnotS: knotS = value; break;
       case Param::Morph: morphParam = value; break;
-
+      case Param::FmIndex: fmIndexParam = value; break;
+      case Param::FmRatio: fmRatioParam = value; break;
       default:
         break;
     }
@@ -178,6 +208,8 @@ class Synth {
       case Param::KnotQ: return knotQ;
       case Param::KnotS: return knotS;
       case Param::Morph: return morphParam;
+      case Param::FmIndex: return fmIndexParam;
+      case Param::FmRatio: return fmRatioParam;
 
       default:
         break;
@@ -186,11 +218,9 @@ class Synth {
   }
 
   inline const char * getParameterStrValue(uint8_t index, int32_t value) const {
-    (void)value;
-    switch (index) {
-      // Note: String memory must be accessible even after function returned.
-      //       It can be assumed that caller will have copied or used the string
-      //       before the next call to getParameterStrValue
+    switch (Param(index)) 
+    {
+      case Param::FmRatio: return FM_RATIO_STR[value];
       default:
         break;
     }
