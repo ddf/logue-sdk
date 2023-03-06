@@ -27,6 +27,7 @@
 #include "SmoothValue.h"
 #include "SmoothValue.cpp"
 #include "SineOscillator.h"
+#include "AdsrEnvelope.h"
 
 enum class Param : uint8_t
 {
@@ -41,6 +42,15 @@ enum class Param : uint8_t
   RotateX,
   RotateY,
   RotateZ,
+  Empty1,
+  EGAttack,
+  EGDecay,
+  EGToMorph,
+  EGToIndex,
+  AmpAttack,
+  AmpDecay,
+  AmpSustain,
+  AmpRelease,
 
   Count
 };
@@ -65,10 +75,17 @@ class Synth {
 /*===========================================================================*/
   static constexpr float TWO_PI = M_PI * 2;
   static constexpr float STEP_RATE = TWO_PI / 48000;
+  static constexpr float PCT = 0.01f;
+  static constexpr float EG_SEC_MIN = 0.001f;
+  static constexpr float EG_SEC_MAX = 3.0f;
+  static constexpr float ADSR_SEC_MIN = 0.001f;
+  static constexpr float ADSR_SEC_MAX = 5.0f;
 
   KnotOscillator knosc;
   SineOscillator kpm;
   Rotation3D rotator;
+  LinearAdsrEnvelope adsrMod;
+  ExponentialAdsrEnvelope adsrAmp;
   int32_t params[static_cast<uint8_t>(Param::Count)];
   Notes notes;
   float rotateX;
@@ -89,11 +106,13 @@ class Synth {
   /* Lifecycle Methods. */
   /*===========================================================================*/
 
-  Synth(void) : knosc(48000), kpm(48000)
+  Synth(void) : knosc(48000), kpm(48000), adsrMod(48000), adsrAmp(48000)
     , rotateX(0), rotateY(0), rotateZ(0)
     , morph(), fmIndex(), freq(0), vol(0)
   {
     memset(params, 0, sizeof(params));
+    adsrMod.setSustain(0);
+    adsrMod.setRelease(0);
   }
 
   ~Synth(void) 
@@ -146,28 +165,39 @@ class Synth {
     int knotP = getParameterValue(Param::KnotP);
     int knotQ = getParameterValue(Param::KnotQ);
 
-    morph = (float)getParameterValue(Param::Morph) / 100.0f;
-    fmIndex = TWO_PI * ((float)getParameterValue(Param::FmIndex) / 100.0f);
+    adsrMod.setAttack(lerp(EG_SEC_MIN, EG_SEC_MAX, getParameterValue(Param::EGAttack) * PCT));
+    adsrMod.setDecay(lerp(EG_SEC_MIN, EG_SEC_MAX, getParameterValue(Param::EGDecay) * PCT));
+
+    adsrAmp.setAttack(lerp(ADSR_SEC_MIN, ADSR_SEC_MAX, getParameterValue(Param::AmpAttack) * PCT));
+    adsrAmp.setDecay(lerp(ADSR_SEC_MIN, ADSR_SEC_MAX, getParameterValue(Param::AmpDecay) * PCT));
+    adsrAmp.setSustain(getParameterValue(Param::AmpSustain) * PCT);
+    adsrAmp.setRelease(lerp(ADSR_SEC_MIN, ADSR_SEC_MAX, getParameterValue(Param::AmpRelease) * PCT));
+
+    morph = getParameterValue(Param::Morph)*PCT;
+    fmIndex = TWO_PI * (getParameterValue(Param::FmIndex)*PCT);
 
     kpm.setFrequency(freq * FM_RATIO_VAL[getParameterValue(Param::FmRatio)]);
 
     knosc.setFrequency(freq);
     knosc.setPQ(knotP, knotQ);
-    knosc.setMorph(morph);
 
     // #TODO: use zoom parameter?
     const float zoom = 6.0f;
     const float rotateBaseFreq = 1.0f / 16.0f;
     const float rotateStep = rotateBaseFreq * STEP_RATE;
-    const float rfx = rotateStep * ((float)getParameterValue(Param::RotateX) / 100.0f) * 16;
-    const float rfy = rotateStep * ((float)getParameterValue(Param::RotateY) / 100.0f) * 16;
-    const float rfz = rotateStep * ((float)getParameterValue(Param::RotateZ) / 100.0f) * 16;
-    const float squigVol = (float)getParameterValue(Param::KnotS) * 0.25f / 100.0f;
+    const float rfx = rotateStep * (getParameterValue(Param::RotateX)*PCT) * 16;
+    const float rfy = rotateStep * (getParameterValue(Param::RotateY)*PCT) * 16;
+    const float rfz = rotateStep * (getParameterValue(Param::RotateZ)*PCT) * 16;
+    const float squigVol = getParameterValue(Param::KnotS) * PCT * 0.25f;
     const float squigStep = freq * STEP_RATE * 4 * (knotP + knotQ);
-    const float noiseVol = (float)getParameterValue(Param::Noise) * 0.5f / 100.0f;
+    const float noiseVol = getParameterValue(Param::Noise) * PCT * 0.5f;
+    const float egToMorph = getParameterValue(Param::EGToMorph) * PCT;
+    const float egToIndex = TWO_PI * getParameterValue(Param::EGToIndex) * PCT;
     for (; out_p != out_e; out_p += 2) 
     {
-      const float fm = kpm.generate() * fmIndex;
+      const float mod = adsrMod.generate();
+      knosc.setMorph(clamp(morph + mod*egToMorph, 0, 1));
+      const float fm = kpm.generate() * clamp(fmIndex + egToIndex*mod, 0, TWO_PI);
 
       // #TODO: should take advantage of NEON ArmV7 instructions?
       //vst1_f32(out_p, vdup_n_f32(0.f));
@@ -182,7 +212,7 @@ class Synth {
       coord.y += sinf(st) * squigVol + coord.y * nz;
       coord.z += coord.z * nz;
       
-      float projection = (1.0f / (coord.z + zoom)) * vol;
+      float projection = (1.0f / (coord.z + zoom)) * vol * adsrAmp.generate();
       out_p[0] = coord.x * projection;
       out_p[1] = coord.y * projection;
 
@@ -248,6 +278,11 @@ class Synth {
 
   inline void NoteOn(uint8_t note, uint8_t velocity) 
   {
+    adsrMod.trigger(true, 0);
+    if (notes.size() == 0)
+    {
+      adsrAmp.gate(true);
+    }
     notes.noteOn(note);
     freq = Frequency::ofMidiNote(note).asHz();
     vol = (float)velocity / 127.0f;
@@ -258,7 +293,7 @@ class Synth {
     notes.noteOff(note);
     if (notes.size() == 0)
     {
-      vol = 0;
+      adsrAmp.gate(false);
     }
     else
     {
@@ -276,6 +311,11 @@ class Synth {
 
   inline void GateOn(uint8_t velocity) 
   {
+    adsrMod.trigger(true, 0);
+    if (notes.size() == 0)
+    {
+      adsrAmp.gate(true);
+    }
     notes.gateOn();
     freq = Frequency::ofMidiNote(getParameterValue(Param::Note)).asHz();
     vol = (float)velocity / 127.0f;
@@ -286,7 +326,7 @@ class Synth {
     notes.gateOff();
     if (notes.size() == 0)
     {
-      vol = 0;
+      adsrAmp.gate(false);
     }
     else
     {
@@ -296,7 +336,7 @@ class Synth {
 
   inline void AllNoteOff() 
   {
-    vol = 0;
+    adsrAmp.gate(false);
   }
 
   inline void PitchBend(uint16_t bend) { (void)bend; }
@@ -325,6 +365,11 @@ class Synth {
   }
 
 private:
+  static inline float lerp(const float from, const float to, const float t)
+  {
+    return from + (to - from) * t;
+  }
+
   static inline float stepPhase(const float phase, const float step)
   {
     return phase > TWO_PI ? phase - TWO_PI + step : phase + step;
