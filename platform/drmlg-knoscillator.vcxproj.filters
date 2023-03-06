@@ -35,5 +35,8 @@
     <ClInclude Include="drumlogue\qrtz-knoscillator\noise.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="drumlogue\qrtz-knoscillator\notes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

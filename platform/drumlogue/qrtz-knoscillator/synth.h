@@ -18,6 +18,7 @@
 #include "runtime.h"
 #include "attributes.h"
 #include "noise.h"
+#include "notes.h"
 
 #include "KnotOscillator.h"
 #include "CartesianFloat.h"
@@ -69,10 +70,10 @@ class Synth {
   SineOscillator kpm;
   Rotation3D rotator;
   int32_t params[static_cast<uint8_t>(Param::Count)];
+  Notes notes;
   float rotateX;
   float rotateY;
   float rotateZ;
-
   SmoothFloat morph;
   SmoothFloat fmIndex;
   float phaseS;
@@ -196,7 +197,12 @@ class Synth {
   {
     switch (Param(index)) 
     {
-      case Param::Note: freq = Frequency::ofMidiNote(value).asHz();
+      case Param::Note:
+        if (notes.size() > 0 && notes.last() == Notes::GATE)
+        {
+          freq = Frequency::ofMidiNote(value).asHz();
+        }
+
       default:
         if (index < static_cast<uint8_t>(Param::Count))
         {
@@ -242,25 +248,50 @@ class Synth {
 
   inline void NoteOn(uint8_t note, uint8_t velocity) 
   {
+    notes.noteOn(note);
     freq = Frequency::ofMidiNote(note).asHz();
     vol = (float)velocity / 127.0f;
   }
 
   inline void NoteOff(uint8_t note) 
   { 
-    (void)note;
-    vol = 0;
+    notes.noteOff(note);
+    if (notes.size() == 0)
+    {
+      vol = 0;
+    }
+    else
+    {
+      uint8_t note = notes.last();
+      if (note == Notes::GATE)
+      {
+        freq = Frequency::ofMidiNote(getParameterValue(Param::Note)).asHz();
+      }
+      else if (note <= 127)
+      {
+        freq = Frequency::ofMidiNote(note).asHz();
+      }
+    }
   }
 
   inline void GateOn(uint8_t velocity) 
   {
+    notes.gateOn();
     freq = Frequency::ofMidiNote(getParameterValue(Param::Note)).asHz();
     vol = (float)velocity / 127.0f;
   }
 
   inline void GateOff() 
   {
-    vol = 0;
+    notes.gateOff();
+    if (notes.size() == 0)
+    {
+      vol = 0;
+    }
+    else
+    {
+      freq = Frequency::ofMidiNote(notes.last()).asHz();
+    }
   }
 
   inline void AllNoteOff() 

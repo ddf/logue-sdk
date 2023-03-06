@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClInclude Include="..\platform\drumlogue\qrtz-knoscillator\synth.h" />
     <ClInclude Include="drumlogue\qrtz-knoscillator\noise.h" />
+    <ClInclude Include="drumlogue\qrtz-knoscillator\notes.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
