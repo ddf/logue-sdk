@@ -27,6 +27,11 @@
 #include "SmoothValue.h"
 #include "SmoothValue.cpp"
 #include "SineOscillator.h"
+#include "TriangleOscillator.h"
+#include "RampOscillator.h"
+#include "SquareWaveOscillator.h"
+#include "NoiseOscillator.h"
+#include "SmoothNoiseOscillator.h"
 #include "AdsrEnvelope.h"
 
 enum class Param : uint8_t
@@ -51,6 +56,10 @@ enum class Param : uint8_t
   AmpDecay,
   AmpSustain,
   AmpRelease,
+  LFOType,
+  LFOFreq,
+  LFOToPitch,
+  LFOToIndex,
 
   Count
 };
@@ -67,6 +76,10 @@ static const float FM_RATIO_VAL[] = {
   12.f, 13.f, 14.f, 15.f, 16.f
 };
 
+static const char* LFO_TYPE_STR[] = {
+  "SINE", "TRI", "SAW", "SQR", "S&H", "RANDOM"
+};
+
 static const Noise2D<128> noise;
 
 class Synth {
@@ -80,12 +93,25 @@ class Synth {
   static constexpr float EG_SEC_MAX = 3.0f;
   static constexpr float ADSR_SEC_MIN = 0.001f;
   static constexpr float ADSR_SEC_MAX = 5.0f;
+  static constexpr float LFO_FREQ_MIN = 0.0625f;
+  static constexpr float LFO_FREQ_MAX = 20.0f;
 
   KnotOscillator knosc;
   SineOscillator kpm;
   Rotation3D rotator;
   LinearAdsrEnvelope adsrMod;
   ExponentialAdsrEnvelope adsrAmp;
+
+  // our lfo types
+  SineOscillator lfoSin;
+  TriangleOscillator lfoTri;
+  RampOscillator lfoSaw;
+  SquareWaveOscillator lfoSqr;
+  NoiseOscillator lfoStep;
+  SmoothNoiseOscillator lfoSmooth;
+  // this points to one of the lfo types based on the LFO TYPE param
+  Oscillator* lfoOsc;
+
   int32_t params[static_cast<uint8_t>(Param::Count)];
   Notes notes;
   float rotateX;
@@ -107,6 +133,8 @@ class Synth {
   /*===========================================================================*/
 
   Synth(void) : knosc(48000), kpm(48000), adsrMod(48000), adsrAmp(48000)
+    , lfoSin(48000), lfoTri(48000), lfoSaw(48000), lfoSqr(48000)
+    , lfoStep(48000), lfoSmooth(48000), lfoOsc(&lfoSin)
     , rotateX(0), rotateY(0), rotateZ(0)
     , morph(), fmIndex(), freq(0), vol(0)
   {
@@ -173,12 +201,14 @@ class Synth {
     adsrAmp.setSustain(getParameterValue(Param::AmpSustain) * PCT);
     adsrAmp.setRelease(lerp(ADSR_SEC_MIN, ADSR_SEC_MAX, getParameterValue(Param::AmpRelease) * PCT));
 
+    lfoOsc->setFrequency(lerp(LFO_FREQ_MIN, LFO_FREQ_MAX, getParameterValue(Param::LFOFreq) * PCT));
+
     morph = getParameterValue(Param::Morph)*PCT;
     fmIndex = TWO_PI * (getParameterValue(Param::FmIndex)*PCT);
 
-    kpm.setFrequency(freq * FM_RATIO_VAL[getParameterValue(Param::FmRatio)]);
+    //kpm.setFrequency(freq * FM_RATIO_VAL[getParameterValue(Param::FmRatio)]);
 
-    knosc.setFrequency(freq);
+    //knosc.setFrequency(freq);
     knosc.setPQ(knotP, knotQ);
 
     // #TODO: use zoom parameter?
@@ -193,11 +223,18 @@ class Synth {
     const float noiseVol = getParameterValue(Param::Noise) * PCT * 0.5f;
     const float egToMorph = getParameterValue(Param::EGToMorph) * PCT;
     const float egToIndex = TWO_PI * getParameterValue(Param::EGToIndex) * PCT;
+    const float lfoToPitch = getParameterValue(Param::LFOToPitch) * PCT;
+    const float lfoToIndex = TWO_PI * getParameterValue(Param::LFOToIndex) * PCT;
+    const float fmRatio = FM_RATIO_VAL[getParameterValue(Param::FmRatio)];
     for (; out_p != out_e; out_p += 2) 
     {
       const float mod = adsrMod.generate();
+      const float lfo = lfoOsc->generate();
+      const float frq = freq * lfoToFreqMult(lfo * lfoToPitch);
+      kpm.setFrequency(frq * fmRatio);
+      knosc.setFrequency(frq);
       knosc.setMorph(clamp(morph + mod*egToMorph, 0, 1));
-      const float fm = kpm.generate() * clamp(fmIndex + egToIndex*mod, 0, TWO_PI);
+      const float fm = kpm.generate() * clamp(fmIndex + egToIndex*mod + lfoToIndex*lfo, 0, TWO_PI);
 
       // #TODO: should take advantage of NEON ArmV7 instructions?
       //vst1_f32(out_p, vdup_n_f32(0.f));
@@ -232,13 +269,36 @@ class Synth {
         {
           freq = Frequency::ofMidiNote(value).asHz();
         }
-
-      default:
-        if (index < static_cast<uint8_t>(Param::Count))
-        {
-          params[index] = value;
-        }
         break;
+
+      case Param::LFOType:
+      {
+        Oscillator* selected = lfoOsc;
+        switch (value)
+        {
+          case 0: selected = &lfoSin; break;
+          case 1: selected = &lfoTri; break;
+          case 2: selected = &lfoSaw; break;
+          case 3: selected = &lfoSqr; break;
+          case 4: selected = &lfoStep; break;
+          case 5: selected = &lfoSmooth; break;
+        }
+        if (lfoOsc != selected)
+        {
+          selected->setFrequency(lfoOsc->getFrequency());
+          selected->setPhase(lfoOsc->getPhase());
+          lfoOsc = selected;
+        }
+      }
+      break;
+
+      // prevents warnings about missing cases
+      default: break;
+    }
+
+    if (index < static_cast<uint8_t>(Param::Count))
+    {
+      params[index] = value;
     }
   }
 
@@ -256,6 +316,7 @@ class Synth {
     switch (Param(index)) 
     {
       case Param::FmRatio: return FM_RATIO_STR[value];
+      case Param::LFOType: return LFO_TYPE_STR[value];
       default:
         break;
     }
@@ -365,6 +426,11 @@ class Synth {
   }
 
 private:
+  static inline float lfoToFreqMult(float lfo)
+  {
+    return lfo < 0 ? lerp(1.0f, 0.5f, -1 * lfo) : lerp(1.0f, 2.0f, lfo);
+  }
+
   static inline float lerp(const float from, const float to, const float t)
   {
     return from + (to - from) * t;

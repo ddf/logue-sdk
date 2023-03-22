@@ -27,6 +27,9 @@
     <ClCompile Include="drumlogue\qrtz-knoscillator\matrix.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="drumlogue\qrtz-knoscillator\maths.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\platform\drumlogue\qrtz-knoscillator\synth.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="drumlogue\qrtz-knoscillator\notes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="drumlogue\qrtz-knoscillator\SmoothNoiseOscillator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

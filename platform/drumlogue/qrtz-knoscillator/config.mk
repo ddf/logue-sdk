@@ -10,7 +10,7 @@ PROJECT_TYPE := synth
 #
 
 # C sources
-CSRC = header.c
+CSRC = header.c maths.c
 
 # C++ sources
 CXXSRC = unit.cc matrix.cc

@@ -19,7 +19,7 @@ const __unit_header unit_header_t unit_header = {
     .version = 0x00010000U,                                // This unit's version: major.minor.patch (major<<16 minor<<8 patch).
     .name = "Knoscillator",                                       // Name for this unit, will be displayed on device
     .num_presets = 0,                                      // Number of internal presets this unit has
-    .num_params = 20,                                       // Number of parameters for this unit, max 24
+    .num_params = 24,                                       // Number of parameters for this unit, max 24
     .params = {
         // Format: min, max, center, default, type, fractional, frac. type, <reserved>, name
 
@@ -56,9 +56,9 @@ const __unit_header unit_header_t unit_header = {
         {0, 100, 0, 10, k_unit_param_type_percent, 0, 0, 0, {"AMP R"}},
 
         // Page 6
-        {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}},
-        {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}},
-        {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}},
-        {0, 0, 0, 0, k_unit_param_type_none, 0, 0, 0, {""}}
+        {0, 5, 0, 0, k_unit_param_type_strings, 0, 0, 0, {"LFO TYPE"}},
+        {0, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"LFO FREQ"}},
+        {-100, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"PITCH LFO"}},
+        {-100, 100, 0, 0, k_unit_param_type_percent, 0, 0, 0, {"INDEX LFO"}}
     }
 };

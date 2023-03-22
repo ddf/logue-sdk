@@ -24,12 +24,14 @@
   <ItemGroup>
     <ClCompile Include="..\platform\drumlogue\qrtz-knoscillator\header.c" />
     <ClCompile Include="..\platform\drumlogue\qrtz-knoscillator\unit.cc" />
+    <ClCompile Include="drumlogue\qrtz-knoscillator\maths.c" />
     <ClCompile Include="drumlogue\qrtz-knoscillator\matrix.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\platform\drumlogue\qrtz-knoscillator\synth.h" />
     <ClInclude Include="drumlogue\qrtz-knoscillator\noise.h" />
     <ClInclude Include="drumlogue\qrtz-knoscillator\notes.h" />
+    <ClInclude Include="drumlogue\qrtz-knoscillator\SmoothNoiseOscillator.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
