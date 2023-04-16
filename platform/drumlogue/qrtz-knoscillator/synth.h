@@ -185,7 +185,11 @@ class Synth {
   /* Other Public Methods. */
   /*===========================================================================*/
 
-  fast_inline void Render(float * out, size_t frames) 
+  // fast_inline breaks intellisense so wrap it in this platform check
+#ifdef __NEON__
+  fast_inline 
+#endif
+  void Render(float * out, size_t frames) 
   {
     float * __restrict out_p = out;
     const float * out_e = out_p + (frames << 1);  // assuming stereo output
